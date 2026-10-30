@@ -35,18 +35,36 @@ def main(src: str, dst: str) -> None:
     lab, n = ndimage.label(fg)
     objs = ndimage.find_objects(lab)
     cw, ch = W / COLS, H / ROWS
-    cells: dict[tuple[int, int], list[int]] = {}
+    comps = []  # (id, cy, cx, area)
     for i, sl in enumerate(objs, start=1):
         if sl is None:
             continue
         ys, xs = sl
-        area = (lab[sl] == i).sum()
+        area = int((lab[sl] == i).sum())
         if area < 6:
             continue
         cy, cx = ndimage.center_of_mass(lab[sl] == i)
-        cy += ys.start
-        cx += xs.start
-        r, c = min(ROWS - 1, int(cy // ch)), min(COLS - 1, int(cx // cw))
+        comps.append((i, cy + ys.start, cx + xs.start, area))
+
+    # A IA não alinha a grade com perfeição: k-means 1D nos centros das peças grandes.
+    def centers(vals, weights, k, span):
+        cs = np.array([(j + 0.5) * span / k for j in range(k)])
+        for _ in range(20):
+            idx = np.abs(vals[:, None] - cs[None, :]).argmin(axis=1)
+            for j in range(k):
+                sel = idx == j
+                if sel.any():
+                    cs[j] = np.average(vals[sel], weights=weights[sel])
+        return np.sort(cs)
+
+    big = [c for c in comps if c[3] > 400]
+    w = np.array([c[3] for c in big], float)
+    row_c = centers(np.array([c[1] for c in big]), w, ROWS, H)
+    col_c = centers(np.array([c[2] for c in big]), w, COLS, W)
+    cells: dict[tuple[int, int], list[int]] = {}
+    for i, cy, cx, _ in comps:
+        r = int(np.abs(row_c - cy).argmin())
+        c = int(np.abs(col_c - cx).argmin())
         cells.setdefault((r, c), []).append(i)
 
     # Altura do herói em pé: mediana da linha de andar (lado).
