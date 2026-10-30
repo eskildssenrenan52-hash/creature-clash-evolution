@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Converte folhas de sprite geradas por IA (grade 6x5 sobre fundo magenta) em
+"""Converte folhas de sprite geradas por IA (grade 8x5 sobre fundo magenta) em
 folhas de pixel art prontas para o jogo, no estilo Kaetram.
 
-Entrada: imagem com 6 linhas x 5 colunas (linha 0 = andar, linhas 1-5 = ataques),
+Entrada: imagem com 6 linhas x 5 colunas (linhas 0-2 = andar frente/lado/costas, linhas 3-7 = ataques),
 personagem virado para a direita, fundo magenta chapado.
 Saída: PNG 5*F x 6*F (F = tamanho do quadro), pés de cada linha numa mesma base.
 
@@ -13,7 +13,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 from scipy import ndimage
 
-ROWS, COLS = 6, 5
+ROWS, COLS = 8, 5
 FRAME = 48          # quadro final (px)
 TARGET_H = 25       # altura do herói em pé no jogo (px)
 BASE_Y = 44         # linha dos pés dentro do quadro
@@ -49,7 +49,7 @@ def main(src: str, dst: str) -> None:
         r, c = min(ROWS - 1, int(cy // ch)), min(COLS - 1, int(cx // cw))
         cells.setdefault((r, c), []).append(i)
 
-    # Altura do herói em pé: mediana da linha de andar.
+    # Altura do herói em pé: mediana da linha de andar (lado).
     heights = []
     for c in range(COLS):
         ids = cells.get((0, c), [])
