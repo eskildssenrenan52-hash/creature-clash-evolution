@@ -89,8 +89,6 @@ def main(src: str, dst: str) -> None:
             y0 = int(y1 - FRAME / scale)
             a = np.zeros((H, W), np.uint8)
             a[m] = 255
-            # Bordas antisserrilhadas suaves.
-            a = ndimage.binary_dilation(m, iterations=0) * 255 if False else a
             rgba = rgba_src.copy()
             rgba[..., 3] = a
             # Desfaz contaminação magenta nas bordas.
