@@ -99,7 +99,7 @@ def main(src: str, dst: str) -> None:
             continue
         base = float(np.median(bottoms))
         for c, m in masks.items():
-            cx0 = (c + 0.5) * cw
+            cx0 = col_c[c]
             # Recorte do quadro na escala original, centrado na célula.
             half = FRAME / scale / 2
             x0, x1 = int(cx0 - half), int(cx0 + half)
