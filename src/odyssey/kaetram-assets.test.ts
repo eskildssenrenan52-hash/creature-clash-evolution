@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import SHEETS from "./kaetram-sprites.json";
 import { HERO_SKINS } from "./hero-sprite";
 import { SPECIES } from "./pets";
-import { kMobSheet } from "./kaetram";
+import { kMobSheet, K_SHEETS } from "./kaetram";
 
 type Sheet = { url: string; anims?: Record<string, [number, number]> };
 const catalog = SHEETS as unknown as Record<string, Sheet>;
@@ -23,7 +23,8 @@ describe("local Kaetram asset pack", () => {
   });
 
   it("keeps hero skins, pets, and matching enemies wired to local sheets", () => {
-    expect(HERO_SKINS.filter((skin) => skin.sheet).every((skin) => local(skin.sheet))).toBe(true);
+    expect(HERO_SKINS.filter((skin) => skin.sheet && !skin.ai).every((skin) => local(skin.sheet))).toBe(true);
+    expect(HERO_SKINS.filter((skin) => skin.ai).every((skin) => K_SHEETS[skin.sheet]?.url === `/${skin.sheet}.png`)).toBe(true);
     expect(SPECIES.every((species) => local(species.sheet))).toBe(true);
     expect(kMobSheet("rat")).toBe("mobs/rat");
     expect(kMobSheet("not-a-kaetram-mob")).toBeUndefined();
