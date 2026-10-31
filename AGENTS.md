@@ -30,4 +30,6 @@
 - Android bundles the browser-only Odyssey screen and assets at an intercepted HTTPS local origin using platform Activity/WebView; guest saves stay in app storage, accounts are excluded, and prototype signing is not Play Store signing.
 - PetsPanel uses pets.ts rules and pet-play.ts state, committing through existing saves to preserve legacy world progress.
 
+- AI-painted hero skins live in public/hero (48 px cells: 3 walk rows + 5 attack rows) and are registered at runtime into a copy of the Kaetram catalog; their indices come after the classic slot so saved Look.kskin values keep meaning.
+- Character-free special effects come from one AI-painted sheet (public/fx/fx.png, 16 effects × 5 frames, built by scripts/build-fx-sheets.py) drawn by src/odyssey/vfx.ts; combo step, hit-stop and effect instances live on Game, never in the save, so balance and saves stay unchanged.
 - Subdirectories have their own `AGENTS.md`; read it before changing files there (see src/odyssey/AGENTS.md).

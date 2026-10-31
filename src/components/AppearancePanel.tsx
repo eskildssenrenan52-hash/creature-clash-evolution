@@ -36,14 +36,14 @@ function Preview({ look, armor, ring }: { look: Look; armor: string; ring: strin
             combo = (combo + 1) % 5; atk = 1; setStep(combo);
             const name = skinFx(lk.kskin, combo), fin = combo === 4;
             const ground = name !== "slash" && name !== "impact" && name !== "blood" && name !== "void" && name !== "explosion" && name !== "ice" && name !== "nature";
-            fx.push(makeFx(name, 36, ground ? 44 : 32, fin ? 0.8 : 0.55, false, fin ? 0.5 : 0.36));
+            fx.push(makeFx(name, 31, ground ? 44 : 32, fin ? 0.75 : 0.5, false, fin ? 0.5 : 0.36));
           }
         } else { atk = 0; combo = -1; }
         fx = tickFx(fx, dt);
         const r = resolveLook(lk, am, rg);
         c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, PV, PV); c.imageSmoothingEnabled = false;
         c.setTransform(PS, 0, 0, PS, 0, 0);
-        const hx = m === "attack" ? 18 : 24, dd = m === "attack" ? 2 : d;
+        const hx = m === "attack" ? 15 : 24, dd = m === "attack" ? 2 : d;
         const ok = drawHero(c, hx, 42, { skin: lk.kskin, dir: dd, moving: m === "walk", frameT: t * 8, attack: Math.max(0, atk), combo: Math.max(0, combo), time: t });
         if (!ok) drawChar(c, hx, 42, r.pal, dd, Math.floor(t * 5) % 4, null, Math.max(0, atk), r.extras);
         for (const f of fx) drawFxInst(c, f);

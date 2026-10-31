@@ -565,8 +565,8 @@ button:disabled{filter:grayscale(.8) brightness(.7)!important}
 .look-skin-text{display:flex;flex-direction:column;gap:2px;min-width:0}
 .look-skin-thumb{width:40px;height:40px;flex:none;image-rendering:pixelated;background:oklch(.2 .03 170 / .7)}
 .look-skin-tag{margin-left:6px;font-style:normal;font-size:8px;padding:1px 4px;border:1px solid var(--ui-gold);color:var(--ui-gold);vertical-align:middle}
-.look-preview-btns{display:flex;gap:6px}
-.look-preview-btns .game-btn{width:40px;min-height:40px;padding:0!important;font-size:13px}
+.look-preview-btns{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.look-preview-btns .game-btn{width:34px;min-height:36px;padding:0!important;font-size:13px}
 .look-options{min-height:120px;max-height:260px;overflow:auto;padding:2px;scrollbar-width:thin}
 .look-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
 .look-swatch{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;background:oklch(.14 .02 170 / .8);border:2px solid transparent;color:inherit;cursor:pointer;min-height:64px}
