@@ -2,6 +2,10 @@
 // Tudo é dado puro + um salvamento próprio ("golden-arrow-look"), então os saves antigos não são tocados.
 import type { Palette } from "./data";
 import type { CharExtras } from "./gfx";
+import { HERO_SKINS } from "./hero-sprite";
+
+/** Skin inicial de quem nunca escolheu: o herói pintado por IA com 5 ataques. */
+export const DEFAULT_KSKIN = Math.max(0, HERO_SKINS.findIndex((s) => s.id === "ai_hero"));
 
 export interface Look {
   skin: number; hairStyle: number; hairColor: number; eyes: number;
@@ -51,7 +55,7 @@ export const HATS: HatDef[] = [
 ];
 export const MARKS = ["Nenhuma", "Cicatriz", "Sardas", "Pintura de guerra", "Óculos"];
 
-export const DEFAULT_LOOK: Look = { skin: 1, hairStyle: 0, hairColor: 0, eyes: 0, outfit: 0, cape: 0, hat: 0, mark: 0, kskin: 0 };
+export const DEFAULT_LOOK: Look = { skin: 1, hairStyle: 0, hairColor: 0, eyes: 0, outfit: 0, cape: 0, hat: 0, mark: 0, kskin: DEFAULT_KSKIN };
 
 const L = (o: Partial<Look>): Look => ({ ...DEFAULT_LOOK, ...o });
 export const SKIN_PRESETS: SkinPreset[] = [
@@ -70,7 +74,7 @@ export function sanitizeLook(raw: Partial<Look> | null | undefined): Look {
   return {
     skin: raw ? clamp(r.skin, SKIN_TONES.length) : DEFAULT_LOOK.skin, hairStyle: clamp(r.hairStyle, HAIR_STYLES.length),
     hairColor: clamp(r.hairColor, HAIR_COLORS.length), eyes: clamp(r.eyes, EYE_COLORS.length),
-    outfit: clamp(r.outfit, OUTFITS.length), cape: clamp(r.cape, CAPES.length), hat: clamp(r.hat, HATS.length), mark: clamp(r.mark, MARKS.length), kskin: clamp(r.kskin, 10),
+    outfit: clamp(r.outfit, OUTFITS.length), cape: clamp(r.cape, CAPES.length), hat: clamp(r.hat, HATS.length), mark: clamp(r.mark, MARKS.length), kskin: raw && r.kskin !== undefined ? clamp(r.kskin, HERO_SKINS.length) : DEFAULT_KSKIN,
   };
 }
 
