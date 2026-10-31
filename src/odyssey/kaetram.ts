@@ -4,7 +4,8 @@
 import SHEETS from "./kaetram-sprites.json";
 
 export interface KSheet { url: string; w?: number; h?: number; ox?: number; oy?: number; anims?: Record<string, [number, number]>; idle?: number }
-export const K_SHEETS = SHEETS as unknown as Record<string, KSheet>;
+/** Cópia do catálogo: outras folhas (ex.: skins de IA em /hero) entram aqui sem alterar o JSON importado. */
+export const K_SHEETS: Record<string, KSheet> = { ...(SHEETS as unknown as Record<string, KSheet>) };
 
 const byCategory = new Map<string, string[]>();
 for (const key of Object.keys(K_SHEETS).sort()) {
