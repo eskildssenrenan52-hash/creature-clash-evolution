@@ -1,10 +1,19 @@
 // Protagonista com os sprites do primeiro jogo: corpo base, skins prontas e arma equipada em camadas.
+// Skins "ai" vêm de folhas pintadas por IA (public/hero): 3 linhas de andar + 5 ataques com 5 quadros.
 import type { ItemDef, Palette, WeaponKind } from "./data";
-import { drawK, kImage, K_DIR } from "./kaetram";
+import { drawK, kImage, K_DIR, K_SHEETS } from "./kaetram";
 import type { CharExtras } from "./gfx";
+import type { FxName } from "./vfx";
 
-export interface HeroSkin { id: string; name: string; desc: string; sheet: string; minLevel: number }
-/** Índice salvo em Look.kskin. O último item volta ao herói desenhado em pixels (personalizável). */
+export type ComboFx = [FxName, FxName, FxName, FxName, FxName];
+export interface HeroSkin { id: string; name: string; desc: string; sheet: string; minLevel: number; ai?: boolean; fx?: ComboFx }
+const CLASSIC_FX: ComboFx = ["slash", "impact", "slash", "shock", "explosion"];
+const ai = (id: string, name: string, desc: string, minLevel: number, fx: ComboFx): HeroSkin => ({ id: `ai_${id}`, name, desc, sheet: `hero/${id}`, minLevel, ai: true, fx });
+
+/**
+ * Índice salvo em Look.kskin. Os 10 primeiros mantêm a ordem antiga (9 = herói em pixels,
+ * personalizável) para saves existentes; as skins de IA entram depois.
+ */
 export const HERO_SKINS: HeroSkin[] = [
   { id: "base", name: "Aventureiro", desc: "O herói clássico do primeiro jogo.", sheet: "player/base", minLevel: 1 },
   { id: "danbo", name: "Danbo", desc: "Robô de papelão, firme e leal.", sheet: "player/skin/danbo", minLevel: 1 },
@@ -16,9 +25,50 @@ export const HERO_SKINS: HeroSkin[] = [
   { id: "skeleton", name: "Esqueleto", desc: "Voltou do Abismo e esqueceu de morrer.", sheet: "player/skin/skeletonskin", minLevel: 10 },
   { id: "darkskeleton", name: "Esqueleto Sombrio", desc: "Ossos tingidos pela Noite.", sheet: "player/skin/darkskeletonskin", minLevel: 15 },
   { id: "classic", name: "Herói em pixels", desc: "O visual personalizável original (pele, cabelo, roupa…).", sheet: "", minLevel: 1 },
+  ai("hero", "Herói da Flecha", "Túnica verde e espada fiel. Combo de vento e explosão.", 1, ["slash", "slash", "wind", "impact", "explosion"]),
+  ai("knight", "Cavaleiro de Prata", "Armadura completa; termina com luz sagrada.", 1, ["slash", "impact", "earth", "slash", "holy"]),
+  ai("ninja", "Ninja da Lua", "Golpes rápidos que somem nas sombras.", 1, ["slash", "wind", "slash", "void", "lightning"]),
+  ai("mage", "Arquimago", "Fogo, gelo e raio num só combo — e um meteoro.", 1, ["arcane", "explosion", "ice", "lightning", "meteor"]),
+  ai("archer", "Arqueira Élfica", "Rajadas de vento e natureza.", 1, ["wind", "nature", "impact", "wind", "lightning"]),
+  ai("cat", "Gato Guerreiro", "Pequeno, veloz e cheio de garra.", 1, ["slash", "impact", "wind", "slash", "arcane"]),
+  ai("danbo", "Danbo de Batalha", "Papelão reforçado, socos que racham o chão.", 2, ["impact", "impact", "earth", "shock", "explosion"]),
+  ai("taekwondo", "Lutador Faixa Preta", "Chutes em sequência e onda de choque.", 2, ["impact", "impact", "wind", "impact", "shock"]),
+  ai("samurai", "Samurai Errante", "Lâmina silenciosa, trovão no final.", 3, ["slash", "slash", "wind", "impact", "lightning"]),
+  ai("pirate", "Capitã Pirata", "Sabre e pólvora: o mar responde.", 3, ["slash", "water", "impact", "water", "explosion"]),
+  ai("sea", "Guardião dos Mares", "Tridente e marés que sobem do chão.", 4, ["water", "ice", "water", "shock", "water"]),
+  ai("oldman", "Sábio Ancião", "Cajado antigo que chama meteoros.", 4, ["arcane", "wind", "lightning", "arcane", "meteor"]),
+  ai("skeleton", "Guerreiro Ossudo", "Ossos que estalam e o vazio que engole.", 5, ["slash", "void", "impact", "void", "explosion"]),
+  ai("druid", "Druida do Bosque", "Vinhas, folhas e a fúria da terra.", 5, ["nature", "wind", "earth", "nature", "nature"]),
+  ai("paladin", "Paladino Dourado", "Cada golpe é uma oração de luz.", 6, ["slash", "holy", "impact", "holy", "holy"]),
+  ai("ice", "Guardião do Gelo", "Cristais que estilhaçam no impacto.", 7, ["ice", "slash", "ice", "water", "ice"]),
+  ai("princess", "Princesa Guerreira", "Elegância arcana e lâmina afiada.", 8, ["slash", "holy", "arcane", "slash", "shock"]),
+  ai("viking", "Viking do Norte", "Machado pesado, trovão de Odin.", 9, ["impact", "earth", "slash", "earth", "lightning"]),
+  ai("witch", "Bruxa da Floresta", "Veneno, sombras e runas.", 10, ["poison", "void", "arcane", "poison", "nature"]),
+  ai("wolf", "Lobisomem", "Garras sangrentas e uivo que sacode a terra.", 11, ["blood", "slash", "impact", "blood", "shock"]),
+  ai("pumpkin", "Cavaleiro Abóbora", "Chamas e veneno da noite de colheita.", 12, ["explosion", "poison", "slash", "void", "explosion"]),
+  ai("vampire", "Conde Vampiro", "Morcegos e lâminas de sangue.", 13, ["blood", "void", "blood", "slash", "blood"]),
+  ai("mecha", "Mecha X-01", "Punhos de aço, laser e choque elétrico.", 14, ["impact", "shock", "lightning", "explosion", "shock"]),
+  ai("necro", "Necromante", "O vazio obedece à sua foice.", 15, ["void", "poison", "void", "arcane", "void"]),
+  ai("angel", "Anjo Celeste", "Asas de luz e julgamento sagrado.", 16, ["holy", "slash", "holy", "shock", "holy"]),
+  ai("demon", "Demônio de Lava", "Fogo do abismo e meteoros.", 18, ["explosion", "slash", "explosion", "void", "meteor"]),
 ];
-export const CLASSIC_SKIN = HERO_SKINS.length - 1;
+export const CLASSIC_SKIN = HERO_SKINS.findIndex((s) => s.id === "classic");
 export const skinUnlocked = (i: number, level: number) => level >= (HERO_SKINS[i]?.minLevel ?? 1);
+/** Efeito especial do golpe `step` (0–4) do combo para a skin. */
+export const skinFx = (i: number, step: number): FxName => (HERO_SKINS[i]?.fx ?? CLASSIC_FX)[((step % 5) + 5) % 5] ?? "slash";
+
+// Folhas de IA: 48 px por quadro, pés em y=44, linhas 0–2 andar (frente/lado/costas), 3–7 ataques virados à direita.
+for (const s of HERO_SKINS) {
+  if (!s.ai) continue;
+  K_SHEETS[s.sheet] = {
+    url: `/${s.sheet}.png`, w: 48, h: 48, ox: -16, oy: -28,
+    anims: {
+      idle_down: [1, 0], idle_right: [1, 1], idle_up: [1, 2],
+      walk_down: [5, 0], walk_right: [5, 1], walk_up: [5, 2],
+      atk1: [5, 3], atk2: [5, 4], atk3: [5, 5], atk4: [5, 6], atk5: [5, 7],
+    },
+  };
+}
 
 /** Folha de arma para cada tipo quando o item não tiver uma própria. */
 const KIND_SPRITE: Record<WeaponKind, string> = { sword: "tinsword", spear: "bronzespear", bow: "woodenbow", staff: "naturestaff" };
@@ -31,12 +81,20 @@ export function weaponSheet(item: Pick<ItemDef, "sprite" | "weapon"> | undefined
  * Desenha o herói com sprites Kaetram. Retorna false quando a skin é a clássica
  * ou as imagens ainda não carregaram (o jogo então usa drawChar).
  */
-export function drawHero(c: CanvasRenderingContext2D, x: number, y: number, o: { skin: number; dir: number; moving: boolean; frameT: number; attack: number; weapon?: Pick<ItemDef, "sprite" | "weapon"> | null; time: number; alpha?: number; scale?: number; pal?: Palette; extras?: CharExtras }): boolean {
+export function drawHero(c: CanvasRenderingContext2D, x: number, y: number, o: { skin: number; dir: number; moving: boolean; frameT: number; attack: number; combo?: number; weapon?: Pick<ItemDef, "sprite" | "weapon"> | null; time: number; alpha?: number; scale?: number; pal?: Palette; extras?: CharExtras }): boolean {
   const skin = HERO_SKINS[o.skin] ?? HERO_SKINS[0];
   if (!skin.sheet || !kImage(skin.sheet)) return false;
   const d = K_DIR[o.dir] ?? "down", flip = o.dir === 1;
-  const bow = o.weapon?.weapon === "bow";
   const attacking = o.attack > 0;
+  if (skin.ai) {
+    // A arte já traz a arma própria da skin; ataques usam a vista lateral.
+    const step = (((o.combo ?? 0) % 5) + 5) % 5;
+    const anim = attacking ? `atk${step + 1}` : o.moving ? `walk_${d}` : `idle_${d}`;
+    const frame = attacking ? Math.min(4, Math.floor((1 - o.attack) * 5)) : o.moving ? o.frameT : 0;
+    const bob = !attacking && !o.moving ? Math.round(Math.sin(o.time * 3) * 0.5) : 0;
+    return drawK(c, skin.sheet, anim, frame, x, y + bob, flip, o.alpha ?? 1, o.scale ?? 1);
+  }
+  const bow = o.weapon?.weapon === "bow";
   const anim = attacking ? `${bow ? "bow_" : ""}atk_${d}` : o.moving ? `walk_${d}` : `idle_${d}`;
   const frame = attacking ? Math.min(3, Math.floor((1 - o.attack) * 4)) : o.moving ? o.frameT : o.time * 2.2;
   const wsheet = o.weapon ? weaponSheet(o.weapon) : null;
