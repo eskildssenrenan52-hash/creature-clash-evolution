@@ -213,6 +213,7 @@ export class Game {
   readonly INV_MAX = 48;
 
   constructor(public canvas: HTMLCanvasElement) {
+    preloadFx();
     const context = canvas.getContext("2d", { alpha: false, desynchronized: true });
     if (!context) throw new Error("Canvas indisponível");
     this.ctx = context;
