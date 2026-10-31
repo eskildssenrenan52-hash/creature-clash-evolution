@@ -23,7 +23,8 @@ import { generateWorld, W, H, TS, T, tileAt, biomeOf, solidAt, BIOME_LIST, hash,
 import { BIOME_LEVEL, enemyLevel, levelScale, xpModifier } from "./levels";
 import { buildTiles, drawAttackFx, drawChar, drawEnemy, drawStatue, drawNode } from "./gfx";
 import { getLook, resolveLook } from "./appearance";
-import { drawHero } from "./hero-sprite";
+import { drawHero, skinFx } from "./hero-sprite";
+import { drawFx, makeFx, preloadFx, tickFx, type FxInst, type FxName } from "./vfx";
 import { petTick, petOnKill, drawPets, petsSave, petsLoad, petGuardMult, petDamageMult } from "./pet-play";
 import { foeTick } from "./foe-play";
 import { BUILDINGS, TREASURES, ROOM, doorOf, createInterior, prepareExploration, canClaimTreasure, type Building } from './exploration';
@@ -77,7 +78,7 @@ export interface Enemy {
   speed: number; xp: number; gold: number; level: number; cd: number; hurt: number; dir: number; alive: boolean; respawn: number;
   slow: number; kbx: number; kby: number; wanderT: number; wx: number; wy: number; boss?: BossState; t: number; summoned?: boolean; elite?: boolean; species?: number;
 }
-interface Proj { x: number; y: number; vx: number; vy: number; life: number; dmg: number; from: "p" | "e"; kind: string; r: number; color: string; slow?: boolean }
+interface Proj { x: number; y: number; vx: number; vy: number; life: number; dmg: number; from: "p" | "e"; kind: string; r: number; color: string; slow?: boolean; fx?: FxName }
 interface Tele { x: number; y: number; r: number; t: number; max: number; dmg: number }
 interface Part { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; grav: number }
 interface FText { x: number; y: number; text: string; color: string; life: number }
@@ -150,6 +151,13 @@ export class Game {
   clock = 0;
   cam = { x: 0, y: 0 };
   shake = 0;
+  /** Combo de 5 golpes, pausa de impacto e efeitos especiais: estado transitório, fora do save. */
+  combo = 0; comboT = 0; hitStop = 0;
+  vfx: FxInst[] = [];
+  fx(name: FxName, x: number, y: number, sc = 0.6, flip = false, dur = 0.34) {
+    if (this.vfx.length > 48) this.vfx.shift();
+    this.vfx.push(makeFx(name, x, y, sc, flip, dur));
+  }
   paused = false;
   started = false;
   enemies: Enemy[] = [];
@@ -411,7 +419,10 @@ export class Game {
     this.float(e.x, e.y - 20, crit ? `${dmg}!` : `${dmg}`, crit ? "#ffd040" : color);
     this.burst(e.x, e.y - 8, color, 5, 50);
     this.audio.sfx("hit");
-    if (crit) this.shake = 3;
+    if (crit) this.shake = 3; else this.shake = Math.max(this.shake, 1.2);
+    // Pausa curta de impacto: limitada para vários acertos no mesmo quadro não travarem o jogo.
+    this.hitStop = Math.min(0.09, Math.max(this.hitStop, crit ? 0.08 : 0.045));
+    this.fx("impact", e.x, e.y - 10, crit ? 0.55 : 0.32, false, 0.22);
     dmg = 0;
     if (e.hp <= 0) this.killEnemy(e);
   }
@@ -419,6 +430,7 @@ export class Game {
     e.alive = false;
     e.respawn = e.summoned ? -1 : 35;
     this.burst(e.x, e.y - 8, "#ffffff", 16, 80);
+    this.fx("explosion", e.x, e.y - 10, e.boss ? 1.5 : 0.6, false, e.boss ? 0.6 : 0.4);
     this.audio.sfx("die");
     if (e.summoned) return;
     epicOnKill(this);
@@ -525,6 +537,13 @@ export class Game {
     const dx = a.x / len, dy = a.y / len;
     this.setDirFrom(dx, dy);
     p.attackT = 1;
+    // Cada ataque aceito avança o combo; fora da janela volta ao primeiro golpe.
+    this.combo = this.comboT > 0 ? (this.combo + 1) % 5 : 0;
+    this.comboT = 0.9;
+    const step = this.combo, finisher = step === 4;
+    const look = getLook().kskin;
+    const fxName = skinFx(look, step), kb = finisher ? 1.8 : 1;
+    if (finisher) this.shake = Math.max(this.shake, 4);
     const pow = this.attackPower();
     const s = this.stats();
     const speedMul = 1 - Math.min(0.4, s.dex * 0.008);
@@ -539,8 +558,9 @@ export class Game {
         const hitR = e.boss ? 18 : 6;
         if (d > range + hitR) continue;
         const ang = Math.abs(Math.atan2(dx * ey - dy * ex, dx * ex + dy * ey));
-        if (ang < arc || d < 10 + hitR) this.damageEnemy(e, pow, dx * 120, dy * 120);
+        if (ang < arc || d < 10 + hitR) this.damageEnemy(e, pow, dx * 120 * kb, dy * 120 * kb);
       }
+      this.fx(fxName, p.x + dx * range * 0.7, p.y - 8 + dy * range * 0.7 + (fxName === "slash" || fxName === "impact" || fxName === "blood" || fxName === "void" || fxName === "explosion" || fxName === "ice" || fxName === "nature" ? 0 : 10), finisher ? 0.95 : 0.5 + step * 0.06, dx < 0, finisher ? 0.45 : 0.3);
       for (let i = 0; i < 6; i++) {
         const ang = Math.atan2(dy, dx) + (i / 5 - 0.5) * arc * 2;
         this.parts.push({ x: p.x + Math.cos(ang) * range * 0.8, y: p.y - 8 + Math.sin(ang) * range * 0.8, vx: 0, vy: 0, life: 0.15, max: 0.15, color: w.color, size: 2, grav: 0 });
@@ -549,11 +569,11 @@ export class Game {
     } else if (kind === "bow") {
       p.atkCd = 0.45 * speedMul;
       this.audio.sfx("bow");
-      this.projs.push({ x: p.x, y: p.y - 8, vx: dx * 260, vy: dy * 260, life: 0.8, dmg: pow, from: "p", kind: "arrow", r: 3, color: "#f0e0c0" });
+      this.projs.push({ x: p.x, y: p.y - 8, vx: dx * 260, vy: dy * 260, life: 0.8, dmg: pow, from: "p", kind: "arrow", r: 3, color: "#f0e0c0", fx: fxName });
     } else {
       p.atkCd = 0.5 * speedMul;
       this.audio.sfx("ice");
-      this.projs.push({ x: p.x, y: p.y - 8, vx: dx * 180, vy: dy * 180, life: 1, dmg: pow, from: "p", kind: "orb", r: 4, color: w.color });
+      this.projs.push({ x: p.x, y: p.y - 8, vx: dx * 180, vy: dy * 180, life: 1, dmg: pow, from: "p", kind: "orb", r: 4, color: w.color, fx: fxName });
     }
   }
 
@@ -588,6 +608,7 @@ export class Game {
         break;
       case "sylph":
         this.audio.sfx("wind");
+        this.fx("wind", cx, cy + 14, 1.3, false, 0.45);
         for (let i = 0; i < 40; i++) {
           const ang = (i / 40) * Math.PI * 2;
           this.parts.push({ x: cx, y: cy, vx: Math.cos(ang) * 140, vy: Math.sin(ang) * 140, life: 0.4, max: 0.4, color: i % 2 ? "#b0ffb0" : "#ffffff", size: 2, grav: 0 });
@@ -610,6 +631,7 @@ export class Game {
         p.hp = Math.min(this.maxHp(), p.hp + h);
         this.float(p.x, p.y - 28, `+${h}`, "#70ff90");
         this.burst(p.x, p.y - 8, "#70ff90", 24, 50, 2, -60);
+        this.fx("nature", p.x, p.y - 10, 0.8, false, 0.5);
         break;
       }
     }
@@ -960,6 +982,13 @@ export class Game {
   update(dt: number) {
     if (this.started && !this.paused && liveTick(this, dt)) { this.transition = Math.max(0, this.transition - dt); this.updateFx(dt); return; }
     if (!this.started || this.paused || this.dialog || this.openStation || this.cutscene) { this.updateFx(dt * 0.0); return; }
+    this.comboT = Math.max(0, this.comboT - dt);
+    if (this.hitStop > 0) {
+      // Congela a simulação por um instante, mas efeitos e o próprio timer continuam.
+      this.hitStop = Math.max(0, this.hitStop - dt);
+      this.updateFx(dt * 0.35);
+      return;
+    }
     this.lastDelta = dt;
     this.actionCooldown = Math.max(0,this.actionCooldown-dt);
     growPlots(this.settlement,dt,!this.interior && this.raining);
@@ -1183,6 +1212,8 @@ export class Game {
             if (pr.kind === "fire") this.explode(pr);
             else {
               this.damageEnemy(e, pr.dmg, pr.vx * 0.4, pr.vy * 0.4, pr.color);
+              if (pr.fx) this.fx(pr.fx, e.x, e.y - 8, 0.6, pr.vx < 0, 0.32);
+              else if (pr.slow) this.fx("ice", e.x, e.y - 8, 0.45, false, 0.3);
               if (pr.slow) { e.slow = 2.5; this.burst(e.x, e.y - 8, "#c0f0ff", 6, 30); }
             }
             pr.life = 0; break;
@@ -1200,10 +1231,11 @@ export class Game {
       if (t.t <= 0) {
         if (t.dmg > 0) {
           if (Math.hypot(p.x - t.x, p.y - t.y) < t.r) this.hurtPlayer(t.dmg, t.x, t.y);
-          this.burst(t.x, t.y, "#ff8040", 20, 90, 2); this.audio.sfx("explode"); this.shake = Math.max(this.shake, 3);
+          this.burst(t.x, t.y, "#ff8040", 20, 90, 2); this.fx("explosion", t.x, t.y, 0.8, false, 0.4); this.audio.sfx("explode"); this.shake = Math.max(this.shake, 3);
         } else if (t.dmg < 0) {
           for (const e of this.enemies) if (e.alive && Math.hypot(e.x - t.x, e.y - 8 - t.y) < t.r + (e.boss ? 16 : 0)) this.damageEnemy(e, -t.dmg, 0, 0, "#fff4a0", e.kind === "shade" || e.boss?.def.id === "crystal_golem" ? 3 : 1);
           this.burst(t.x, t.y, "#fff4a0", 50, 140, 2, -20);
+          this.fx("holy", t.x, t.y + 12, 1.4, false, 0.5);
           this.shake = 5;
         }
       }
@@ -1215,11 +1247,13 @@ export class Game {
     if (pr.kind === "fire") {
       this.audio.sfx("explode");
       this.burst(pr.x, pr.y, "#ff6a20", 24, 100, 2); this.burst(pr.x, pr.y, "#ffd040", 12, 60, 2);
+      this.fx("explosion", pr.x, pr.y, 0.95, false, 0.42);
       for (const e of this.enemies) if (e.alive && Math.hypot(e.x - pr.x, e.y - 8 - pr.y) < 30 + (e.boss ? 16 : 0)) this.damageEnemy(e, pr.dmg, 0, 0, "#ff8040");
       this.shake = 3;
     } else this.burst(pr.x, pr.y, pr.color, 5, 40);
   }
   updateFx(dt: number) {
+    if (this.vfx.length) this.vfx = tickFx(this.vfx, dt);
     for (const q of this.parts) { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += q.grav * dt; q.vx *= Math.exp(-3*dt); q.vy *= Math.exp(-3*dt); q.life -= dt; }
     this.parts = this.parts.filter((q) => q.life > 0);
     if (this.parts.length > 900) this.parts.splice(0, this.parts.length - 900);
@@ -1369,13 +1403,14 @@ export class Game {
       const w = this.weapon();
       const look = resolveLook(getLook(), armor.color, ring);
       const L = getLook();
-      if (!drawHero(c, p.x, p.y, { skin: L.kskin, dir: p.dir, moving: Math.hypot(p.vx, p.vy) > 10, frameT: p.frameT, attack: Math.max(0, p.attackT), weapon: w, time: this.clock, pal: look.pal, extras: look.extras }))
+      if (!drawHero(c, p.x, p.y, { skin: L.kskin, dir: p.dir, moving: Math.hypot(p.vx, p.vy) > 10, frameT: p.frameT, attack: Math.max(0, p.attackT), combo: this.combo, weapon: w, time: this.clock, pal: look.pal, extras: look.extras }))
         drawChar(c, p.x, p.y, look.pal, p.dir, p.frame, { kind: w.weapon ?? "sword", color: w.color }, Math.max(0, p.attackT), look.extras);
       drawAttackFx(c, p.x, p.y, p.dir, Math.max(0, p.attackT), w.weapon ?? "sword", w.color, this.clock);
     } });
     drawPets(this, c, draws, wt);
     draws.sort((a, b) => a.y - b.y);
     for (const d of draws) d.f();
+    drawFx(c, this.vfx);
     // projectiles
     for (const pr of this.projs) {
       const pa = Math.atan2(pr.vy, pr.vx), speed = Math.min(34, Math.hypot(pr.vx, pr.vy) * 0.08);
