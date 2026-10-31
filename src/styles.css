@@ -557,7 +557,14 @@ button:disabled{filter:grayscale(.8) brightness(.7)!important}
 .hero-tabs button{flex:1}
 .look-layout{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:start}
 .look-preview{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px;background:radial-gradient(circle at 50% 40%,oklch(.28 .05 170),oklch(.12 .02 170));border:2px solid oklch(.6 .12 70 / .45)}
-.look-preview canvas{width:84px;height:156px;image-rendering:pixelated}
+.look-preview canvas{width:min(192px,56vw);height:auto;aspect-ratio:1;image-rendering:pixelated}
+.look-combo{display:flex;gap:4px}
+.look-combo span{width:20px;height:20px;display:grid;place-items:center;font-size:10px;border:1px solid oklch(.6 .12 70 / .45);color:oklch(.8 .05 80 / .7)}
+.look-combo span.on{background:var(--ui-gold);color:oklch(.15 .02 170);border-color:var(--ui-gold)}
+.look-skin-row{display:flex;align-items:center;gap:8px;width:100%}
+.look-skin-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.look-skin-thumb{width:40px;height:40px;flex:none;image-rendering:pixelated;background:oklch(.2 .03 170 / .7)}
+.look-skin-tag{margin-left:6px;font-style:normal;font-size:8px;padding:1px 4px;border:1px solid var(--ui-gold);color:var(--ui-gold);vertical-align:middle}
 .look-preview-btns{display:flex;gap:6px}
 .look-preview-btns .game-btn{width:40px;min-height:40px;padding:0!important;font-size:13px}
 .look-options{min-height:120px;max-height:260px;overflow:auto;padding:2px;scrollbar-width:thin}
