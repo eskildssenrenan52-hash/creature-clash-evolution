@@ -11,6 +11,8 @@ import {
 type Cat = "skins" | "skin" | "hair" | "style" | "eyes" | "outfit" | "cape" | "hat" | "mark";
 const CATS: [Cat, string][] = [["skins", "Skins"], ["skin", "Pele"], ["hair", "Cabelo"], ["style", "Estilo"], ["eyes", "Olhos"], ["outfit", "Roupa"], ["cape", "Capa"], ["hat", "Chapéu"], ["mark", "Rosto"]];
 
+/** Skins de IA (com 5 ataques) aparecem primeiro; o índice salvo não muda. */
+const SKIN_ORDER = HERO_SKINS.map((s, i) => ({ i, ai: !!s.ai })).sort((a, b) => Number(b.ai) - Number(a.ai) || a.i - b.i).map((x) => x.i);
 const PV = 192, PS = 4; // canvas de prévia: 48×48 px de jogo ampliados 4×
 
 function Preview({ look, armor, ring }: { look: Look; armor: string; ring: string }) {
@@ -109,7 +111,7 @@ export function AppearancePanel({ level, armor, ring }: { level: number; armor: 
       <div className="look-editor">
         <div className="look-cats" role="tablist" aria-label="Categorias">{CATS.map(([id, label]) => <button key={id} role="tab" aria-selected={cat === id} className={cat === id ? "on" : ""} onClick={() => setCat(id)}>{label}</button>)}</div>
         <div className="look-options">
-          {cat === "skins" && <><div className="look-skins">{HERO_SKINS.map((s, i) => <Button key={s.id} variant="game" disabled={!skinUnlocked(i, level)} aria-pressed={look.kskin === i} className={`look-skin h-auto whitespace-normal text-left ${look.kskin === i ? "ring-1 ring-primary" : ""}`} onClick={() => apply({ kskin: i })}><span className="look-skin-row"><SkinThumb index={i} /><span className="look-skin-text"><b>{s.name}{s.ai && <em className="look-skin-tag">5 ataques</em>}</b><small>{skinUnlocked(i, level) ? s.desc : `Libera no nível ${s.minLevel}`}</small></span></span></Button>)}</div><div className="look-skins mt-3">{SKIN_PRESETS.map((s) => {
+          {cat === "skins" && <><div className="look-skins">{SKIN_ORDER.map((i) => { const s = HERO_SKINS[i]!; return <Button key={s.id} variant="game" disabled={!skinUnlocked(i, level)} aria-pressed={look.kskin === i} className={`look-skin h-auto whitespace-normal text-left ${look.kskin === i ? "ring-1 ring-primary" : ""}`} onClick={() => apply({ kskin: i })}><span className="look-skin-row"><SkinThumb index={i} /><span className="look-skin-text"><b>{s.name}{s.ai && <em className="look-skin-tag">5 ataques</em>}</b><small>{skinUnlocked(i, level) ? s.desc : `Libera no nível ${s.minLevel}`}</small></span></span></Button>; })}</div><div className="look-skins mt-3">{SKIN_PRESETS.map((s) => {
             const lock = level < s.minLevel;
             return <Button variant="game" key={s.id} disabled={lock} className="look-skin h-auto whitespace-normal text-left" onClick={() => set({ ...s.look, kskin: CLASSIC_SKIN })}><b>{s.name}</b><small>{lock ? `Libera no nível ${s.minLevel}` : s.desc}</small></Button>;
           })}</div></>}
